@@ -1,0 +1,13 @@
+{
+  "name": "pdf-to-excel-statement",
+  "version": "1.0.0",
+  "description": "Thai Bank Statement PDF to Excel Converter",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "build": "pip install -r requirements.txt"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

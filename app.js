@@ -6,30 +6,7 @@ const os   = require('os');
 
 const PORT       = process.env.PORT || 3000;
 const SCRIPT_DIR = __dirname;
-// Detect Python path: Render uses .venv, Windows uses 'python'
-const { execSync } = require('child_process');
-
-function findPython() {
-  if (process.platform === 'win32') return 'python';
-  // Check .venv first (Render), then system python3
-  const candidates = [
-    path.join(__dirname, '.venv', 'bin', 'python3'),
-    path.join(__dirname, '.venv', 'bin', 'python'),
-    '/opt/render/project/src/.venv/bin/python3',
-    'python3',
-    'python',
-  ];
-  for (const p of candidates) {
-    try {
-      execSync(`"${p}" --version`, { stdio: 'ignore' });
-      console.log(`[Python] Using: ${p}`);
-      return p;
-    } catch (_) {}
-  }
-  return 'python3';
-}
-
-const PYTHON = findPython();
+const PYTHON = process.platform === 'win32' ? 'python' : 'python3';
 
 // ── Multipart parser ─────────────────────────────────────────────────────────
 function parseMultipart(body, boundary) {

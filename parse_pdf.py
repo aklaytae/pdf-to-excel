@@ -17,6 +17,37 @@ def classify_amount(x0, x1):
     else:
         return 'balance'
 
+def detect_bank(pdf_path: str) -> str:
+    try:
+        import pdfplumber
+        with pdfplumber.open(pdf_path) as pdf:
+            first_page_text = pdf.pages[0].extract_text() or ""
+            text_lower = first_page_text.lower()
+
+            if any(k in text_lower for k in ['กสิกรไทย', 'kbank', 'kasikorn']):
+                return 'kbank'
+            elif any(k in text_lower for k in ['ไทยพาณิชย์', 'scb', 'siam commercial']):
+                return 'scb'
+            elif any(k in text_lower for k in ['ธ.ก.ส', 'baac', 'เพื่อการเกษตร']):
+                return 'baac'
+            # ✅ เพิ่ม GSB detection
+            elif any(k in text_lower for k in [
+                'ออมสิน', 'gsb', 'government savings',
+                'savings account statement',   # header ใน PDF
+                'mymo', 'ppsdtr', 'mppoff'    # transaction codes เฉพาะ GSB
+            ]):
+                return 'oomsin'
+            else:
+                return 'generic'
+    except Exception as e:
+        print(f"Detection error: {e}", file=sys.stderr)
+        return 'generic'
+
+# ใน main() เพิ่ม:
+elif bank_type == 'oomsin':
+    from parse_oomsin import parse_oomsin
+    transactions = parse_oomsin(input_path)
+    
 def parse_pdf(pdf_path):
     transactions = []
     meta = {}

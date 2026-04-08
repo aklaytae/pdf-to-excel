@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import sys
 import json
+import pdfplumber
 import re
-import os
 from collections import defaultdict
 
 date_pattern = re.compile(r'^\d{2}/\d{2}/\d{2}$')
@@ -16,99 +16,6 @@ def classify_amount(x0, x1):
         return 'credit'
     else:
         return 'balance'
-
-def detect_bank(pdf_path: str) -> str:
-    """Auto-detect bank type from PDF content"""
-    try:
-        import pdfplumber  # ✅ import ข้างในฟังก์ชันแทน
-        with pdfplumber.open(pdf_path) as pdf:
-            first_page_text = pdf.pages[0].extract_text() or ""
-            text_lower = first_page_text.lower()
-
-            if any(k in text_lower for k in ['กสิกรไทย', 'kbank', 'kasikorn']):
-                return 'kbank'
-            elif any(k in text_lower for k in ['ไทยพาณิชย์', 'scb', 'siam commercial']):
-                return 'scb'
-            elif any(k in text_lower for k in ['ธ.ก.ส', 'baac', 'เพื่อการเกษตร']):
-                return 'baac'
-            elif any(k in text_lower for k in [
-                'ออมสิน', 'gsb', 'government savings',
-                'savings account statement',
-                'mymo', 'ppsdtr', 'mppoff'
-            ]):
-                return 'oomsin'
-            else:
-                return 'generic'
-
-    except ImportError:
-        print("Error: pdfplumber not installed. Run: pip install pdfplumber",
-              file=sys.stderr)
-        return 'generic'
-    except Exception as e:
-        print(f"Detection error: {e}", file=sys.stderr)
-        return 'generic'
-
-
-def main():
-    if len(sys.argv) < 3:
-        print("Usage: python parse_pdf.py <input.pdf> <output.xlsx> [bank_type]",
-              file=sys.stderr)
-        sys.exit(1)
-
-    input_path  = sys.argv[1]
-    output_path = sys.argv[2]
-    bank_type   = sys.argv[3] if len(sys.argv) > 3 else 'auto'
-
-    if not os.path.exists(input_path):
-        print(f"Error: Input file not found: {input_path}", file=sys.stderr)
-        sys.exit(1)
-
-    # Auto-detect bank
-    if bank_type == 'auto':
-        bank_type = detect_bank(input_path)
-        print(f"Auto-detected bank: {bank_type}")
-
-    # Route to parser
-    transactions = []
-
-    try:
-        if bank_type == 'kbank':
-            from parse_kbank import parse_kbank
-            transactions = parse_kbank(input_path)
-
-        elif bank_type == 'scb':
-            from parse_scb import parse_scb
-            transactions = parse_scb(input_path)
-
-        elif bank_type == 'baac':
-            from parse_baac import parse_baac
-            transactions = parse_baac(input_path)
-
-        elif bank_type == 'oomsin':
-            from parse_oomsin import parse_oomsin
-            transactions = parse_oomsin(input_path)
-
-        else:
-            from parse_oomsin import parse_oomsin
-            transactions = parse_oomsin(input_path)
-
-        if not transactions:
-            print("Warning: No transactions found", file=sys.stderr)
-
-        from generate_excel import generate_excel
-        generate_excel(transactions, output_path, bank_type)
-
-        print(f"Success: {len(transactions)} transactions -> {output_path}")
-
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        import traceback
-        traceback.print_exc(file=sys.stderr)
-        sys.exit(1)
-
-
-if __name__ == '__main__':
-    main()
 
 def parse_pdf(pdf_path):
     transactions = []
